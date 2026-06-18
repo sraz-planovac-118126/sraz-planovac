@@ -25,14 +25,16 @@
     .form { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
     label { color: #374151; display: grid; font-size: 13px; font-weight: 750; gap: 6px; }
     label:first-child { grid-column: 1 / -1; }
-    input { background: #f9fafb; border: 1px solid #cfd6e2; border-radius: 7px; color: #111827; font: inherit; min-height: 42px; padding: 0 11px; }
-    input:focus { border-color: #2563eb; outline: 3px solid rgba(37,99,235,.16); }
+    input, select { background: #f9fafb; border: 1px solid #cfd6e2; border-radius: 7px; color: #111827; font: inherit; min-height: 42px; padding: 0 11px; }
+    input:focus, select:focus { border-color: #2563eb; outline: 3px solid rgba(37,99,235,.16); }
     .check { align-items: center; align-self: end; display: flex; gap: 9px; min-height: 42px; }
     .check input { min-height: auto; width: 18px; }
     .actions { display: flex; gap: 10px; margin: 16px 0 18px; }
     button { border: 0; border-radius: 7px; cursor: pointer; font: inherit; font-weight: 800; min-height: 42px; padding: 0 14px; }
     .primary { background: #2563eb; color: #fff; flex: 1; }
     .ghost { background: #eef2f7; color: #374151; }
+    .quick { display: grid; gap: 8px; grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 12px; }
+    .quick button { background: #f7f8fb; border: 1px solid #d8dee7; color: #374151; font-size: 13px; min-height: 36px; padding: 0 10px; }
     .rules, .results, .days { display: grid; gap: 10px; }
     .rule, .result { border: 1px solid #e1e6ef; border-radius: 8px; padding: 12px; }
     .rule strong, .result strong { display: block; }
@@ -42,6 +44,10 @@
     li { border-top: 1px solid #edf0f5; display: grid; gap: 2px; padding: 9px 0; }
     li:first-child { border-top: 0; }
     .time { color: #2563eb; font-weight: 800; }
+    .badge { border-radius: 999px; display: inline-flex; font-size: 12px; font-weight: 900; margin-top: 4px; padding: 2px 8px; width: fit-content; }
+    .ready { background: #dcfce7; color: #166534; }
+    .almost { background: #fef3c7; color: #92400e; }
+    .copy { background: #111827; color: #fff; margin-top: 12px; width: 100%; }
     .timeline { margin-top: 18px; }
     .days { grid-template-columns: repeat(7,minmax(0,1fr)); }
     .day { border: 1px solid #e1e6ef; border-radius: 8px; min-height: 132px; padding: 11px; }
@@ -69,11 +75,17 @@
       <section class="panel">
         <div class="title"><h2>Naklikat cas</h2><p>Jeden radek = jeden volny blok pro jednoho cloveka.</p></div>
         <div class="form">
-          <label>Jmeno <input id="name" placeholder="treba Repik"></label>
+          <label>Jmeno <select id="name"></select></label>
           <label>Datum <input id="date" type="date"></label>
           <label class="check"><input id="allDay" type="checkbox"> Cely den</label>
           <label>Od <input id="start" type="time" step="1800" value="18:00"></label>
           <label>Do <input id="end" type="time" step="1800" value="20:00"></label>
+        </div>
+        <div class="quick">
+          <button data-quick="today-evening">Dnes vecer</button>
+          <button data-quick="tomorrow-evening">Zitra vecer</button>
+          <button data-quick="sat-all">Sobota cely den</button>
+          <button data-quick="sun-all">Nedele cely den</button>
         </div>
         <div class="actions">
           <button class="primary" id="add">Pridat cas</button>
@@ -84,6 +96,7 @@
       <section class="panel">
         <div class="title"><h2>Co uz vychazi</h2><p>Nejblizsi terminy prvni.</p></div>
         <div class="results" id="results"></div>
+        <button class="copy" id="copy">Zkopirovat nejlepsi terminy</button>
       </section>
     </section>
     <section class="timeline">
@@ -105,16 +118,17 @@
     const apiUrl = `${supabaseUrl}/rest/v1/availability_slots`;
     const apiHeaders = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json" };
     const key = "sraz-planovac-v1";
+    const players = Array.from({ length: 10 }, (_, index) => index === 9 ? "Jmeno 10 (Honza R)" : `Jmeno ${index + 1}`);
     const today = new Date().toISOString().slice(0, 10);
-    const demo = [
-      { id: crypto.randomUUID(), name: "Repik", date: today, start: "18:00", end: "20:00", allDay: false },
-      { id: crypto.randomUUID(), name: "Kamos", date: today, start: "17:30", end: "20:30", allDay: false }
-    ];
-    let slots = JSON.parse(localStorage.getItem(key) || "null") || demo;
+    let slots = JSON.parse(localStorage.getItem(key) || "null") || [];
     let sync = "Nacitam Supabase";
     const $ = (id) => document.getElementById(id);
+    $("name").innerHTML = players.map((name) => `<option value="${name}">${name}</option>`).join("");
+    $("name").value = localStorage.getItem("sraz-planovac-name") || players[0];
     $("date").value = today;
+    $("name").addEventListener("change", () => localStorage.setItem("sraz-planovac-name", $("name").value));
     $("allDay").addEventListener("change", () => { $("start").disabled = $("end").disabled = $("allDay").checked; });
+    document.querySelectorAll("[data-quick]").forEach((button) => button.addEventListener("click", () => setQuick(button.dataset.quick)));
     $("add").addEventListener("click", () => {
       const name = $("name").value.trim();
       if (!name) return;
@@ -124,7 +138,9 @@
       save();
       insertRemote(slot);
     });
+    $("copy").addEventListener("click", copyBest);
     $("clear").addEventListener("click", async () => {
+      if (!confirm("Fakt vycistit vsechny casy?")) return;
       slots = [];
       save();
       await fetch(`${apiUrl}?id=neq.00000000-0000-0000-0000-000000000000`, { method: "DELETE", headers: apiHeaders });
@@ -133,26 +149,47 @@
     function mins(time) { const [h, m] = time.split(":").map(Number); return h * 60 + m; }
     function time(m) { return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
     function datePlus(i) { const d = new Date(); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10); }
+    function nextWeekday(target) {
+      const now = new Date();
+      const diff = (target - now.getDay() + 7) % 7;
+      const d = new Date();
+      d.setDate(d.getDate() + diff);
+      return d.toISOString().slice(0, 10);
+    }
     function fmt(date) { return new Intl.DateTimeFormat("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }).format(new Date(`${date}T12:00:00`)); }
     function weekend(date) { return [0, 6].includes(new Date(`${date}T12:00:00`).getDay()); }
     function names(items) { return [...new Set(items.map((s) => s.name).filter(Boolean))]; }
     function covers(slot, start, end) { return slot.allDay || (mins(slot.start) <= start && mins(slot.end) >= end); }
-    function candidates(days) {
+    function setQuick(kind) {
+      const presets = {
+        "today-evening": { date: today, start: "18:00", end: "21:00", allDay: false },
+        "tomorrow-evening": { date: datePlus(1), start: "18:00", end: "21:00", allDay: false },
+        "sat-all": { date: nextWeekday(6), start: "09:00", end: "21:00", allDay: true },
+        "sun-all": { date: nextWeekday(0), start: "09:00", end: "21:00", allDay: true }
+      };
+      const preset = presets[kind];
+      $("date").value = preset.date;
+      $("start").value = preset.start;
+      $("end").value = preset.end;
+      $("allDay").checked = preset.allDay;
+      $("start").disabled = $("end").disabled = preset.allDay;
+    }
+    function opportunities(days) {
       const found = [];
       for (const activity of activities) for (const date of days) {
         if (activity.weekend && !weekend(date)) continue;
         if (activity.allDay) {
           const people = names(slots.filter((s) => s.date === date && s.allDay));
-          if (people.length >= activity.minPeople) found.push({ activity, date, start: "cely den", end: "", people });
+          if (people.length) found.push({ activity, date, start: "cely den", end: "", people, missing: Math.max(0, activity.minPeople - people.length) });
           continue;
         }
         for (let start = 420; start + activity.duration <= 1320; start += 30) {
           const end = start + activity.duration;
           const people = names(slots.filter((s) => s.date === date && covers(s, start, end)));
-          if (people.length >= activity.minPeople) found.push({ activity, date, start: time(start), end: time(end), people });
+          if (people.length) found.push({ activity, date, start: time(start), end: time(end), people, missing: Math.max(0, activity.minPeople - people.length) });
         }
       }
-      return found;
+      return found.sort((a, b) => a.missing - b.missing || b.people.length - a.people.length || a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
     }
     function toRemote(slot) { return { id: slot.id, name: slot.name, date: slot.date, start_time: slot.start, end_time: slot.end, all_day: slot.allDay }; }
     function fromRemote(row) { return { id: row.id, name: row.name, date: row.date, start: row.start_time.slice(0, 5), end: row.end_time.slice(0, 5), allDay: row.all_day }; }
@@ -185,21 +222,46 @@
       }
     }
     function save() { localStorage.setItem(key, JSON.stringify(slots)); render(); }
+    function formatHit(hit) {
+      return `${hit.activity.title}: ${fmt(hit.date)} ${hit.start}${hit.end ? "-" + hit.end : ""} (${hit.people.length}/${hit.activity.minPeople} lidi${hit.missing ? `, chybi ${hit.missing}` : ", READY"}): ${hit.people.join(", ")}`;
+    }
+    async function copyBest() {
+      const days = Array.from({ length: 21 }, (_, i) => datePlus(i));
+      const text = activities.map((activity) => {
+        const best = opportunities(days).filter((hit) => hit.activity.id === activity.id).slice(0, 3);
+        return best.length ? best.map(formatHit).join("\n") : `${activity.title}: zatim nic`;
+      }).join("\n\n");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      $("copy").textContent = "Zkopirovano";
+      setTimeout(() => $("copy").textContent = "Zkopirovat nejlepsi terminy", 1400);
+    }
     function render() {
       const days = Array.from({ length: 21 }, (_, i) => datePlus(i));
-      const hits = candidates(days);
-      $("stats").innerHTML = `<span>${names(slots).length} lidi</span><span>${slots.length} casu</span><span>${hits.length} tref</span><span>${sync}</span>`;
+      const hits = opportunities(days);
+      const readyCount = hits.filter((hit) => hit.missing === 0).length;
+      $("stats").innerHTML = `<span>${names(slots).length} lidi</span><span>${slots.length} casu</span><span>${readyCount} READY</span><span>${sync}</span>`;
       $("rules").innerHTML = activities.map((a) => `<article class="rule"><strong>${a.title}</strong><span>${a.short}</span></article>`).join("");
       $("results").innerHTML = activities.map((a) => {
         const list = hits.filter((h) => h.activity.id === a.id).slice(0, 8);
-        return `<article class="result"><h3>${a.title}</h3><span>${a.short}</span>${list.length ? `<ul>${list.map((h) => `<li><strong>${fmt(h.date)}</strong><span class="time">${h.start}${h.end ? "-" + h.end : ""}</span><small>${h.people.join(", ")}</small></li>`).join("")}</ul>` : `<p class="empty">Zatim chybi lidi nebo cas.</p>`}</article>`;
+        return `<article class="result"><h3>${a.title}</h3><span>${a.short}</span>${list.length ? `<ul>${list.map((h) => `<li><strong>${fmt(h.date)}</strong><span class="time">${h.start}${h.end ? "-" + h.end : ""}</span><span class="badge ${h.missing ? "almost" : "ready"}">${h.people.length}/${a.minPeople} ${h.missing ? `chybi ${h.missing}` : "READY"}</span><small>${h.people.join(", ")}</small></li>`).join("")}</ul>` : `<p class="empty">Zatim chybi lidi nebo cas.</p>`}</article>`;
       }).join("");
       $("days").innerHTML = days.map((day) => {
         const daySlots = slots.filter((s) => s.date === day);
         return `<article class="day ${weekend(day) ? "weekend" : ""}"><div class="day-head"><strong>${fmt(day)}</strong><small>${names(daySlots).length} lidi</small></div>${daySlots.length ? `<ul>${daySlots.map((s) => `<li class="slot"><span>${s.name}</span><small>${s.allDay ? "cely den" : s.start + "-" + s.end}</small><button onclick="removeSlot('${s.id}')">x</button></li>`).join("")}</ul>` : `<p class="empty">Nic</p>`}</article>`;
       }).join("");
     }
-    window.removeSlot = (id) => { slots = slots.filter((s) => s.id !== id); save(); deleteRemote(id); };
+    window.removeSlot = (id) => { if (!confirm("Smazat tenhle cas?")) return; slots = slots.filter((s) => s.id !== id); save(); deleteRemote(id); };
     render();
     loadRemote();
     setInterval(loadRemote, 15000);
