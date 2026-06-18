@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Red Squadron Kitlist</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eef2f7; color: #111827; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { min-height: 100vh; padding: 28px; }
+    .shell { max-width: 1360px; margin: 0 auto; }
+    .top { align-items: end; display: flex; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .eyebrow { color: #9f1239; font-size: 13px; font-weight: 850; letter-spacing: 0; margin: 0 0 8px; text-transform: uppercase; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { color: #111827; font-size: 42px; line-height: 1; }
+    h2 { font-size: 20px; }
+    a { color: inherit; }
+    .nav a { background: #111827; border-radius: 7px; color: #fff; display: inline-flex; font-weight: 800; min-height: 40px; padding: 9px 14px; text-decoration: none; }
+    .tools, .panel { background: #fff; border: 1px solid #d8dee7; border-radius: 8px; box-shadow: 0 12px 32px rgba(17,24,39,.08); }
+    .tools { display: grid; gap: 14px; grid-template-columns: minmax(240px, 1fr) auto; margin-bottom: 18px; padding: 16px; }
+    label { color: #374151; display: grid; font-size: 13px; font-weight: 800; gap: 6px; }
+    input { background: #f9fafb; border: 1px solid #cfd6e2; border-radius: 7px; color: #111827; font: inherit; min-height: 42px; padding: 0 12px; }
+    input:focus { border-color: #9f1239; outline: 3px solid rgba(159,18,57,.16); }
+    .stats { align-items: end; display: flex; gap: 8px; flex-wrap: wrap; }
+    .stats span { background: #f7f8fb; border-radius: 6px; color: #374151; font-size: 13px; font-weight: 800; padding: 9px 11px; white-space: nowrap; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    button { border: 0; border-radius: 7px; cursor: pointer; font: inherit; font-weight: 800; min-height: 38px; padding: 0 12px; }
+    .tab { background: #fff; border: 1px solid #d8dee7; color: #374151; }
+    .tab.active { background: #9f1239; border-color: #9f1239; color: #fff; }
+    .panel { margin-bottom: 14px; overflow: hidden; }
+    .panel-head { align-items: center; background: #111827; color: #fff; display: flex; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+    .panel-head small { color: #d1d5db; font-weight: 800; }
+    .section { padding: 14px 16px 16px; }
+    .section + .section { border-top: 1px solid #e5e7eb; }
+    .note { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; color: #7c2d12; font-weight: 750; line-height: 1.4; margin: 12px 0 0; padding: 12px; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; min-width: 760px; width: 100%; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: #f7f8fb; color: #374151; font-size: 12px; text-transform: uppercase; }
+    td { color: #111827; font-size: 14px; }
+    td.empty { color: #9ca3af; }
+    mark { background: #fde68a; border-radius: 3px; padding: 0 2px; }
+    .empty-state { background: #fff; border: 1px dashed #cfd6e2; border-radius: 8px; color: #667085; font-weight: 750; padding: 28px; text-align: center; }
+    @media (max-width: 760px) {
+      main { padding: 12px; }
+      h1 { font-size: 32px; }
+      .top, .tools { align-items: stretch; display: flex; flex-direction: column; }
+      .nav a { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="shell">
+      <section class="top">
+        <div>
+          <p class="eyebrow">Red Squadron</p>
+          <h1>Kitlist</h1>
+        </div>
+        <nav class="nav"><a href="./">Zpet na planovac</a></nav>
+      </section>
+
+      <section class="tools">
+        <label>Hledat v kitlistu
+          <input id="search" type="search" placeholder="treba Crye, HK416, Aliexpress, Surefire...">
+        </label>
+        <div class="stats">
+          <span id="matchCount">44 polozek</span>
+          <span>5 kategorii</span>
+        </div>
+      </section>
+
+      <nav class="tabs" id="tabs"></nav>
+      <section id="content"></section>
+    </div>
+  </main>
+  <script>
+    const kit = [{"name": "Uniform", "sections": [{"headers": ["Original  Name", "Manufacturer", "Copy Name", "Copy Manufacturer"], "items": [["G3 Combat Shirt", "Crye", "", "Emerson/Semapo"], ["G3 Combat Pants", "Crye", "", "Emerson/Semapo"], ["G3 Field Shirt", "Crye", "", "Aliexpress"], ["G2/3 Field Pants", "Crye", "", "Emerson"], ["BOSS Rugby Shirt", "Velocity System", "Velocity Rugby Shirt", "Aliexpress"]]}]}, {"name": "Helmet", "sections": [{"headers": ["Original  Name", "Manufacturer", "Copy Name", "Copy Manufacturer"], "items": [["FAST hi cut Helmet", "OPS-Core", "Fast Helmet", "FMA"], ["FAST Super High cut", "OPS-Core", "", ""], ["L4G24 NVG Mount System", "Wilcox", "L4G24 NVG Mount", "Aliexpress"], ["M300C Mini Scout Light", "Surefire", "M300C Mini Scout Light", "WADSN"], ["Precision MA-X Mount", "S&S", "M300 Helmet Mount", "Aliexpress"], ["Hel-Star 6 Helmet Light", "Core Survival", "Tactical Ladybug Light", "Aliexpress"], ["Charge Pro MPLS Helmet Light", "Princeton Tec", "MPLS Tactical Helmet Light", "Aliexpress"], ["Helmet Safety Flashing Light", "TBA", "Helmet Safety Flashing Light", "FMA"], ["NVG counterweight pouches", "", "", ""]]}]}, {"name": "PC + Pouches + 1st Line Belts", "sections": [{"headers": ["Original  Name", "Manufacturer", "Copy Name", "Copy Manufacturer"], "items": [["JPC 2.0", "Crye", "JPC 2.0", "Aliexpress"], ["AVS", "Crye", "AVS MBAV", "Emerson, Conquer, etc…"], ["FCPC V5", "Ferro Concept", "FCPC V5", "Aliexpress"], ["Shuto Belt", "Ronin Tactics", "Ronin Style Tactical belt", "Aliexpress"], ["Bison Belt", "Ferro Concept", "bison tactical belt", "Aliexpress"], ["ASSAULTER BELT SYSTEM V2", "GBRS", "", "Aliexpress"], ["ALS/SLS Pistol Holster 6354", "Safariland", "", "Aliexpress"]]}, {"note": "Sumky a Back Panely - Hlavně Crye Precision, potom Ferro Concept a GBRS. Takže nebuďte líny a kopči si najděte na alíku podle obrázku, nebo se zeptejte. Je jich fakt hodně a nechce se mi to vypisovat teď."}]}, {"name": "Comms", "sections": [{"headers": ["Original  Name", "Manufacturer", "Copy Name", "Copy Manufacturer"], "items": [["Sordin", "MSA", "", ""], ["Comtac III CB/OD + ARC Rail adapter", "Peltor 3M", "Comtac III", "TRI/TCA/Z-TAC"], ["Throat mic", "", "Throat mic", "TRI/Z-Tac"], ["MH180-V", "", "MH180-V", "Z-Tac"], ["Bowman Headset", "", "Bowman Headset", "Z-Tac"], ["PTT U94", "Nexus/Peltor", "U94/Peltor PTT", "Z-Tac/Element"], ["Harris Antenna for PRC 148/152", "", "", "TRI/TCA"], ["AN/PRC 152", "Harris", "AN/PRC 152", "TRI"], ["Foretrex 401", "Garmin", "", ""]]}]}, {"name": "Weapons", "sections": [{"headers": ["Weapon", "Barrel", "Handguard", "Silencer"], "items": [["Noveske N4", "10,5 inch", "NSR9", "Dead air silencers - Sandman"], ["HK416", "10,5/14,5 inch", "Geissele SMR, Midwest M-lok", "Surefire Socom556"], ["HK417", "16,5 inch", "Classic RIS", "Surefire Socom762"], ["HK MP7", "", "", "HK MP7 Silencer"], ["MK46", "", "", "Surefire Socom556"], ["MK48", "", "", "Surefire Socom762"], ["Glock 45", "/", "/", "/"], ["M2010 ERS", "/", "/", "Surefire Socom762 ???"], ["M320 GL", "/", "/", "/"]]}, {"headers": ["Red dot", "magnifer", "Flashlight", "Laser designator"], "items": [["Eotech XPS 2", "Eotech G-series", "Surefire M300", "L3Harris AN/PEQ-15 APTIAL"], ["Eotech XPS 3", "", "Surefire M600", "L3HARRIS NGAL"], ["Aimpoint T1", "", "Surefire M640", ""], ["Aimpoint T2", "", "INFORCE WML", ""], ["Trijicon RMR", "", "Surefire X300", ""]]}, {"note": "Gripy, pažby, spínače, popruhy jsou Individiální"}, {"note": "Risery a montáže - Unity, Wilcox, Geissele"}, {"note": "LPVO - Na origo nikdo nemá, takže tohle nácháme otevřený na dostupné věci."}, {"note": "Obecně platí, že hlavní zbraně mají spíše do Pískových barev už v základu"}]}];
+    let active = "all";
+    const search = document.getElementById("search");
+    const tabs = document.getElementById("tabs");
+    const content = document.getElementById("content");
+    const matchCount = document.getElementById("matchCount");
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
+    }
+
+    function highlight(value, query) {
+      const safe = escapeHtml(value || "");
+      if (!query) return safe || "<span class='empty'>-</span>";
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return safe.replace(new RegExp(escaped, "ig"), (match) => `<mark>${match}</mark>`) || "<span class='empty'>-</span>";
+    }
+
+    function rowText(row) {
+      return row.join(" ").toLowerCase();
+    }
+
+    function sectionText(section) {
+      if (section.note) return section.note.toLowerCase();
+      return [section.headers.join(" "), ...section.items.map(rowText)].join(" ").toLowerCase();
+    }
+
+    function renderTabs() {
+      const categories = ["all", ...kit.map((category) => category.name)];
+      tabs.innerHTML = categories.map((name) => {
+        const label = name === "all" ? "Vse" : name;
+        return `<button class="tab ${active === name ? "active" : ""}" data-name="${escapeHtml(name)}">${escapeHtml(label)}</button>`;
+      }).join("");
+      tabs.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          active = button.dataset.name;
+          render();
+        });
+      });
+    }
+
+    function render() {
+      const query = search.value.trim().toLowerCase();
+      const visible = kit
+        .filter((category) => active === "all" || category.name === active)
+        .map((category) => {
+          const sections = category.sections.map((section) => {
+            if (section.note) return sectionText(section).includes(query) ? section : null;
+            const items = section.items.filter((row) => !query || rowText(row).includes(query));
+            const keepHeaderMatch = query && section.headers.join(" ").toLowerCase().includes(query);
+            if (!items.length && !keepHeaderMatch) return null;
+            return { ...section, items };
+          }).filter(Boolean);
+          return { ...category, sections };
+        })
+        .filter((category) => category.sections.length);
+
+      let count = 0;
+      content.innerHTML = visible.map((category) => {
+        const rowsInCategory = category.sections.reduce((sum, section) => sum + (section.items ? section.items.length : 0), 0);
+        count += rowsInCategory;
+        const sections = category.sections.map((section) => {
+          if (section.note) return `<div class="section"><p class="note">${highlight(section.note, query)}</p></div>`;
+          const headers = section.headers.map((header) => `<th>${highlight(header, query)}</th>`).join("");
+          const rows = section.items.map((row) => `<tr>${row.map((cell) => `<td class="${cell ? "" : "empty"}">${highlight(cell, query)}</td>`).join("")}</tr>`).join("");
+          return `<div class="section"><div class="table-wrap"><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+        }).join("");
+        return `<article class="panel"><header class="panel-head"><h2>${escapeHtml(category.name)}</h2><small>${rowsInCategory} polozek</small></header>${sections}</article>`;
+      }).join("");
+
+      matchCount.textContent = `${count} polozek`;
+      if (!visible.length) content.innerHTML = `<div class="empty-state">Nic nenalezeno.</div>`;
+      renderTabs();
+    }
+
+    search.addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>
