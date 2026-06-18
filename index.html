@@ -95,6 +95,10 @@
       { id: "training", title: "Airsoft trening", short: "3,5 h / 5 lidi", minPeople: 5, duration: 210 },
       { id: "event", title: "Airsoft akce", short: "vikend / cely den / 2 lidi", minPeople: 2, duration: 720, weekend: true, allDay: true }
     ];
+    const supabaseUrl = "https://djdhpwgihaxjgyjrqctd.supabase.co";
+    const supabaseKey = "sb_publishable_mEhqM8cANfm3nQlIgGXekQ_Rr1PE3hB";
+    const apiUrl = `${supabaseUrl}/rest/v1/availability_slots`;
+    const apiHeaders = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json" };
     const key = "sraz-planovac-v1";
     const today = new Date().toISOString().slice(0, 10);
     const demo = [
@@ -102,6 +106,7 @@
       { id: crypto.randomUUID(), name: "Kamos", date: today, start: "17:30", end: "20:30", allDay: false }
     ];
     let slots = JSON.parse(localStorage.getItem(key) || "null") || demo;
+    let sync = "Nacitam Supabase";
     const $ = (id) => document.getElementById(id);
     $("date").value = today;
     $("allDay").addEventListener("change", () => { $("start").disabled = $("end").disabled = $("allDay").checked; });
@@ -109,10 +114,17 @@
       const name = $("name").value.trim();
       if (!name) return;
       if (!$("allDay").checked && mins($("start").value) >= mins($("end").value)) return;
-      slots.unshift({ id: crypto.randomUUID(), name, date: $("date").value, start: $("start").value, end: $("end").value, allDay: $("allDay").checked });
+      const slot = { id: crypto.randomUUID(), name, date: $("date").value, start: $("start").value, end: $("end").value, allDay: $("allDay").checked };
+      slots.unshift(slot);
       save();
+      insertRemote(slot);
     });
-    $("clear").addEventListener("click", () => { slots = []; save(); });
+    $("clear").addEventListener("click", async () => {
+      slots = [];
+      save();
+      await fetch(`${apiUrl}?id=neq.00000000-0000-0000-0000-000000000000`, { method: "DELETE", headers: apiHeaders });
+      loadRemote();
+    });
     function mins(time) { const [h, m] = time.split(":").map(Number); return h * 60 + m; }
     function time(m) { return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
     function datePlus(i) { const d = new Date(); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10); }
@@ -137,11 +149,41 @@
       }
       return found;
     }
+    function toRemote(slot) { return { id: slot.id, name: slot.name, date: slot.date, start_time: slot.start, end_time: slot.end, all_day: slot.allDay }; }
+    function fromRemote(row) { return { id: row.id, name: row.name, date: row.date, start: row.start_time.slice(0, 5), end: row.end_time.slice(0, 5), allDay: row.all_day }; }
+    async function loadRemote() {
+      try {
+        const response = await fetch(`${apiUrl}?select=*&order=date.asc,start_time.asc`, { headers: apiHeaders });
+        if (!response.ok) throw new Error("Supabase read failed");
+        slots = (await response.json()).map(fromRemote);
+        sync = "Sdilene pres Supabase";
+        save();
+      } catch {
+        sync = "Lokalni zaloha";
+        render();
+      }
+    }
+    async function insertRemote(slot) {
+      try {
+        await fetch(apiUrl, { method: "POST", headers: { ...apiHeaders, Prefer: "return=minimal" }, body: JSON.stringify(toRemote(slot)) });
+        loadRemote();
+      } catch {
+        sync = "Ulozeno jen lokalne";
+        render();
+      }
+    }
+    async function deleteRemote(id) {
+      try {
+        await fetch(`${apiUrl}?id=eq.${id}`, { method: "DELETE", headers: apiHeaders });
+      } finally {
+        loadRemote();
+      }
+    }
     function save() { localStorage.setItem(key, JSON.stringify(slots)); render(); }
     function render() {
       const days = Array.from({ length: 21 }, (_, i) => datePlus(i));
       const hits = candidates(days);
-      $("stats").innerHTML = `<span>${names(slots).length} lidi</span><span>${slots.length} casu</span><span>${hits.length} tref</span><span>Lokalni rezim</span>`;
+      $("stats").innerHTML = `<span>${names(slots).length} lidi</span><span>${slots.length} casu</span><span>${hits.length} tref</span><span>${sync}</span>`;
       $("rules").innerHTML = activities.map((a) => `<article class="rule"><strong>${a.title}</strong><span>${a.short}</span></article>`).join("");
       $("results").innerHTML = activities.map((a) => {
         const list = hits.filter((h) => h.activity.id === a.id).slice(0, 8);
@@ -152,8 +194,10 @@
         return `<article class="day ${weekend(day) ? "weekend" : ""}"><div class="day-head"><strong>${fmt(day)}</strong><small>${names(daySlots).length} lidi</small></div>${daySlots.length ? `<ul>${daySlots.map((s) => `<li class="slot"><span>${s.name}</span><small>${s.allDay ? "cely den" : s.start + "-" + s.end}</small><button onclick="removeSlot('${s.id}')">x</button></li>`).join("")}</ul>` : `<p class="empty">Nic</p>`}</article>`;
       }).join("");
     }
-    window.removeSlot = (id) => { slots = slots.filter((s) => s.id !== id); save(); };
+    window.removeSlot = (id) => { slots = slots.filter((s) => s.id !== id); save(); deleteRemote(id); };
     render();
+    loadRemote();
+    setInterval(loadRemote, 15000);
   </script>
 </body>
 </html>
