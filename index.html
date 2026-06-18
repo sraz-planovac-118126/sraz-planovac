@@ -50,6 +50,8 @@
     .slot { align-items: center; display: grid; grid-template-columns: minmax(0,1fr) auto 28px; }
     .slot span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .slot button { background: transparent; color: #9ca3af; min-height: 28px; padding: 0; }
+    .footer-link { max-width: 1360px; margin: 18px auto 0; }
+    .footer-link a { align-items: center; background: #111827; border-radius: 8px; color: #fff; display: flex; font-weight: 850; justify-content: center; min-height: 48px; padding: 0 16px; text-decoration: none; }
     @media (max-width: 1050px) { main { padding: 18px; } .top { align-items: stretch; flex-direction: column; } .grid { grid-template-columns: 1fr; } .results, .days { grid-template-columns: repeat(2,minmax(0,1fr)); } }
     @media (max-width: 640px) { main { padding: 12px; } h1 { font-size: 32px; } .stats, .actions { flex-direction: column; } .form, .results, .days { grid-template-columns: 1fr; } }
   </style>
@@ -87,6 +89,9 @@
     <section class="timeline">
       <div class="title"><h2>Dostupnost party</h2><p>Prehled pro nejblizsich 21 dni.</p></div>
       <div class="days" id="days"></div>
+    </section>
+    <section class="footer-link">
+      <a href="./kitlist.html">Otevrit Red Squadron kitlist</a>
     </section>
   </main>
   <script>
